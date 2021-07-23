@@ -43,7 +43,7 @@ Tools:
 ```
 
 ## USAGE
-<img src="https://github.com/ExCLoudVision/Apollon-eyes/blob/main/usage.png" width="652" height="484"/>
+<img src="https://github.com/ExCLoudVision/Apollon-eyes/blob/main/usage.png" />
 
 ## Author
 
