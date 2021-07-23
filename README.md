@@ -48,8 +48,8 @@ Tools:
 ## Author
 
 👤 **reamde:** [@loTus01](https://github.com/loTus04)<br />
-👤 **Lulu** [@lulu](https://github.com/ExCLoudVision)
-👤 **Wyene** [@Wyene]
+👤 **Lulu** [@lulu](https://github.com/ExCLoudVision)<br />
+👤 **Wyene** [@Wyene](https://www.youtube.com/channel/UCHWjG56b-n_mbUW7kzpuZyQ)
 
 
 ## 🤝 Contributing
