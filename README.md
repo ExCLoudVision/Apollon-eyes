@@ -60,7 +60,7 @@ Give a ⭐️ if this project helped you!
 
 ## 📝 License
 
-Copyright © 2021 [loTus01](https://github.com/ExCLoudVision).<br />
+Copyright © 2021 [Lulu](https://github.com/ExCLoudVision).<br />
 This project is [MIT](https://github.com/kefranabg/readme-md-generator/blob/master/LICENSE) licensed.
 
 ***
