@@ -12,6 +12,8 @@ color = {"red":colorama.Fore.LIGHTRED_EX,
         "category": colorama.Fore.LIGHTCYAN_EX,
         "module": colorama.Fore.LIGHTRED_EX}
 
+all_email = []
+
 typemails = ["@gmail.com","@protonmail.com",
             "@protonmail.ch", "@outlook.com",
             "@hotmail.com", "@yahoo.com",
@@ -27,11 +29,16 @@ typemails = ["@gmail.com","@protonmail.com",
 EMAIL_REGEX = r"""(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])"""
 
 moduleList = ["bruteforce/subdomain",
+            "bruteforce/portscanner",
             "worldlist/subdomain",
             "googledork/subdomain",
             "googledork/sensitive",
             "detection/headers",
-            "detection/mails"]
+            "detection/mails",
+            "detection/subdirectories",
+            "filter/pro_mails",
+            "save/mails"]
+
 sensitive_search = ['intitle:"index of" "/configs"',
                     'intext:"CAD Media Log"',
                     'intitle:"index of" "/.vscode"',
@@ -66,7 +73,29 @@ sensitive_search = ['intitle:"index of" "/configs"',
                     '"Web Application Assessment Report" ext:pdf',
                     'inurl:statrep.nsf',
                     'intitle:"index of" "*.cert.pem" | "*.key.pem"',
-                    '"index of" "email.ini"']
+                    '"index of" "email.ini"',
+                    'intitle:"index of" "database.ini" OR "database.ini.old"']
+class PortScanner:
+    def __init__(self, target, min, max):
+        
+        self.open_port = []
+        self.target = target
+        self.min, self.max = min, max
+    def CreateSocket(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.settimeout(1)
+    def Start(self):
+        for port in range(self.min,self.max):
+            try:
+                if self.socket.connect_ex((self.target, port)) == 0:
+                    self.open_port.append(port)
+                    self.socket.close()
+                    self.CreateSocket()
+            except:
+                pass
+    def Get_result(self):
+        return self.open_port
+
 class bruteforce:
     def __init__(self, url):
         self.baseUrl = url
@@ -100,10 +129,10 @@ def clear():
     else:
         print('\x1bc')
 def success(text):
-    print(color["green"] + " [ + ] " + color["clear"] + "- " + text + color["clear"])
+    print(color["green"] + " [ + ] " + color["clear"] + "- " + str(text) + color["clear"])
 def search_engine_func(engine,search):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0"}
-    r = requests.get(f"https://www.{engine}.com/?q={search}", headers=headers)
+    _headers = {r"User-Agent": r"Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0"}
+    r = requests.get("https://www." + engine + ".com/?q= " + search, headers=_headers)
     bingtext = r.text
     soup = BeautifulSoup(bingtext, features="lxml")
     links = soup.findAll("a")
@@ -118,25 +147,26 @@ def search_engine_func(engine,search):
     return urlresult
 def search_mails(site, mails):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:78.0) Gecko/20100101 Firefox/78.0"}
-    r = requests.get(f"https://www.bing.com/?q=site:{site} \"{mails}\"", headers=headers)
+    r = requests.get("https://www.bing.com/?q=site:" + site + " \"" + mails + "\"", headers=headers)
     bingtext = r.text
     soup = BeautifulSoup(bingtext, features="lxml")
     links = soup.findAll("a")
     urlresult = []
+    i = 0
     for link in links:
         try:
-            urlsite = link["href"]
-            if "https://" in urlsite:
-                urlresult.append(link["href"])
+            if i > 50:
+                pass
+            else:
+                urlsite = link["href"]
+                if "https://" in urlsite:
+                    urlresult.append(link["href"])
+                i += 1
         except:
             pass
-    i = 0
+    
     for d in urlresult:
-        if i > 100:
-            pass
-        else:
-            i += 1
-            bingtext += "\n" + requests.get(d).text
+        bingtext += "\n" + requests.get(d).text
     return bingtext.split("\n")
 def alert(text, stop=False):
     print(color["red"] + " [ ! ] " + color["clear"] + "- " + text + color["clear"])
@@ -150,6 +180,7 @@ def info(text):
 def FormatText(text):
     printable_text = ""
     text = text.split("%%")
+
     for x in text:
         if x == "desco":
             printable_text += color["desc"]
@@ -160,7 +191,7 @@ def FormatText(text):
     return printable_text
 def FormatTextList(text):
     printable_text = ""
-    text = text.split("nefzefzefffffse")
+    text = text.split("\n")
     for d in text:
         d = str(d).split("/")
         for x in range(len(d)):
@@ -177,11 +208,15 @@ search_engine = ["bing"]
 print(color["clear"] + colorama.Style.BRIGHT)
 clear()
 
+def save(path, text):
+    with open(path, "a") as a:
+        a.write(text + "\n")
+
 if len(sys.argv) < 2:
     alert(sys.argv[0] + " <url> (without protocols)", True)
 url = sys.argv[1]
 def main():
-    print(f"""
+    print("""
         
 \t\t\t
 \t\t\t           #############
@@ -190,15 +225,14 @@ def main():
 \t\t\t  ###          ## ##           ###
 \t\t\t    #####      \\###/      ######
 \t\t\t      #######         ########
-\t\t\t           #############  
-\t          
-\t\t\t       -[ {color["magenta"]} Apollon  eyes {color["clear"]}  ]- """)
+\t\t\t           #############  \n\n
+\t\t\t       -[ """ + color["magenta"] + " Apollon  eyes " + color["clear"] + "]- """)
     while(1):
         print("\n")
         choice = input(color["magenta"] + "\t\t\t    >_" + color["clear"])
         print("\n")
         primaryreq = requests.get("http://" + url)
-
+        ps = PortScanner(url,20,100)
         if choice == "help":
             print(FormatText("""
 \t\t\trun < module name > %%desco%% # use a module %%descc%%
@@ -227,6 +261,11 @@ def main():
                             break
                         except requests.exceptions.ConnectionError:
                             pass
+                if choice[1] == "portscanner":
+                    info("scanning start")
+                    ps.Start()
+                    for port in ps.Get_result():
+                        success(port)
             if "wordlist" in choice[0]:
                 if choice[1] == "subdomain":
                     wordlist = [0,1]
@@ -240,9 +279,9 @@ def main():
 
                     for word in wordlist:
                         try:
-                            r = requests.get(f"https://{word}.{url}")
+                            r = requests.get("https://" + str(word) + "." + url)
                             if r.status_code == 200:
-                                success(f"https://{word}.{url}")
+                                success("https://" + str(word) + "." + url)
                         except requests.exceptions.ConnectionError:
                             pass
                         except urllib3.exceptions.LocationParseError:
@@ -294,19 +333,62 @@ def main():
                     for head in primaryreq.headers:
                         info(head + ":" + primaryreq.headers[head])
                 if choice[1] == "mails":
-                    aldry_mails = []
-                    for mail in typemails:
-                        for ligne in search_mails(url, mail):
-                            for re_match in re.finditer(EMAIL_REGEX, ligne):
-                                if "%20%22" in re_match.group():
-                                    pass
-                                elif re_match.group() in aldry_mails:
-                                    pass
-                                else:
-                                    success(re_match.group())
-                                    aldry_mails.append(re_match.group())
-                    if len(aldry_mails) < 1:
-                        alert("sorry i doesn't find mails :'( ")
-                    else:
-                        success(f"total {len(aldry_mails)}")
+                    stop = False
+                    try:
+                        if stop == False:
+                            aldry_mails = []
+                            for mail in typemails:
+                                for ligne in search_mails(url, mail):
+                                    for re_match in re.finditer(EMAIL_REGEX, ligne):
+                                        if "%20%22" in re_match.group() or "u003" in re_match.group():
+                                            pass
+                                        elif re_match.group() in aldry_mails:
+                                            pass
+                                        else:
+                                            success(re_match.group())
+                                            aldry_mails.append(re_match.group())
+                                            all_email.append(re_match.group())
+                            if len(aldry_mails) < 1:
+                                alert("sorry i doesn't find mails :'( ")
+                            else:
+                                success(f"total {len(aldry_mails)}")
+                    except KeyboardInterrupt:
+                        stop = True
+                if choice[1] == "subdirectories":
+                    info("method 1")
+                    r = requests.get("https://" + url + "/robots.txt")
+                    lignes = r.text.split("\n")
+                    for ligne in lignes:
+                        if "Disallow:" in ligne and len(ligne) > 10:
+                            data = ligne.split(" ")
+                            success(data[1])
+                    info("method 2")
+                    r = requests.get("https://" + url + "/sitemap.xml")
+                    if r.status_code != 200:
+                        continue
+                    data = r.text.split(" ")
+                    for _data in data:
+                        if url in _data:
+                            text = str(_data)
+                            text = text.replace("<loc>", "")
+                            text = text.replace("</loc>", "")
+                            _data = text.replace("https://", "")
+                            _data = _data.replace(url, "")
+                            _data = _data.replace("\n", "")
+                            _data = _data.replace("www.", "")
+                            _dataa = _data.split("<")
+                            _dataa = _dataa[1].split(">")
+                            success(_dataa[1])
+        if choice[0] == "filter":
+            if choice[1] == "pro_mails":
+                info("please use detection/mails module before")
+                for mail in all_email:
+                    if url in mail:
+                        success(mail)
+        if choice[0] == "save":
+            if choice[1] == "mails":
+                if len(all_email) > 1:
+                    for mail in all_email:
+                        save(url + "_mails", mail)
+                    success("save in " + url + "_mails")
 main()
